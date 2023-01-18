@@ -64,6 +64,28 @@ class ResourceTabs extends React.Component<Props> {
         return resourceKey;
     }
 
+    @computed get resourceStoreOptions() {
+        const {
+            attributes,
+            route: {
+                options: {
+                    requestParameters = {},
+                    routerAttributesToFormRequest = {},
+                },
+            },
+        } = this.props.router;
+
+        const resourceStoreOptions = requestParameters ? requestParameters : {};
+        Object.keys(toJS(routerAttributesToFormRequest)).forEach((key) => {
+            const formOptionKey = routerAttributesToFormRequest[key];
+            const attributeName = isNaN(key) ? key : toJS(routerAttributesToFormRequest[key]);
+
+            resourceStoreOptions[formOptionKey] = attributes[attributeName];
+        });
+
+        return resourceStoreOptions;
+    }
+
     constructor(props: Props) {
         super(props);
 
@@ -79,6 +101,14 @@ class ResourceTabs extends React.Component<Props> {
     }
 
     createResourceStore = () => {
+        const {
+            route: {
+                options: {
+                    idQueryParameter,
+                },
+            },
+        } = this.props.router;
+
         const options = {};
         if (this.locales) {
             options.locale = observable.box();
@@ -89,7 +119,11 @@ class ResourceTabs extends React.Component<Props> {
             this.resourceStore.destroy();
         }
 
-        this.resourceStore = new ResourceStore(this.resourceKey, this.id, options);
+        if (idQueryParameter) {
+            this.resourceStore = new ResourceStore(this.resourceKey, this.id, options, this.resourceStoreOptions, idQueryParameter);
+        } else {
+            this.resourceStore = new ResourceStore(this.resourceKey, this.id, options, this.resourceStoreOptions);
+        }
     };
 
     disposeCreateResourceStoreOnRouteChange = (route: ?Route) => {
